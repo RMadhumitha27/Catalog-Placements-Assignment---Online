@@ -1,0 +1,198 @@
+1.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+// Function to convert a string of a given base to decimal
+long long decodeBase(const char* value, int base) {
+    long long result = 0;
+    for (int i = 0; value[i] != '\0'; i++) {
+        int digit = (value[i] >= '0' && value[i] <= '9') ? value[i] - '0' :
+                    (value[i] >= 'A' && value[i] <= 'Z') ? value[i] - 'A' + 10 : -1;
+        if (digit >= base || digit < 0) {
+            fprintf(stderr, "Invalid character in number for base %d\n", base);
+            exit(1);
+        }
+        result = result * base + digit;
+    }
+    return result;
+}
+
+// Function to calculate the constant term c
+long long calculateConstantTerm(long long* roots, int m) {
+    long long product = 1;
+    for (int i = 0; i < m; i++) {
+        product *= roots[i];
+    }
+    return (m % 2 == 0) ? product : -product; // Even m: return product, Odd m: return -product
+}
+
+int main() {
+    // Define the JSON data as a string in the code
+    const char json[] = "{"
+        "\"keys\": {\"n\": 4, \"k\": 3}, "
+        "\"1\": {\"base\": \"10\", \"value\": \"4\"}, "
+        "\"2\": {\"base\": \"2\", \"value\": \"111\"}, "
+        "\"3\": {\"base\": \"10\", \"value\": \"12\"}, "
+        "\"6\": {\"base\": \"4\", \"value\": \"213\"}"
+    "}";
+
+    int n = 0, k = 0;
+    long long roots[7] = {0}; // Initialize roots array to store decoded values
+    char* token;
+
+    // Extract n and k from the JSON string
+    token = strstr(json, "\"keys\":");
+    if (token) {
+        sscanf(token, "\"keys\": {\"n\": %d, \"k\": %d", &n, &k);
+    }
+
+    // Read and decode roots
+    int decodedRootsCount = 0;  // Counter for the number of roots decoded
+    for (int i = 1; decodedRootsCount < n; i++) {
+        char baseKey[20];
+        snprintf(baseKey, sizeof(baseKey), "\"%d\": {\"base\":", i);
+
+        char* baseStart = strstr(json, baseKey);
+        if (baseStart) {
+            int base;
+            char value[100];
+
+            // Extract base and value for the current root
+            sscanf(baseStart, "\"%d\": {\"base\": \"%d\", \"value\": \"%[^\"]\"}", &i, &base, value);
+
+            // Decode value from the given base
+            long long decodedValue = decodeBase(value, base);
+            roots[decodedRootsCount] = decodedValue;
+            decodedRootsCount++;
+        }
+    }
+
+    // Calculate the constant term c using the first k roots
+    long long constantTerm = calculateConstantTerm(roots, k);
+    printf("The constant term c is: %lld\n", constantTerm);
+
+    return 0;
+}
+
+
+
+T1:
+The constant term c is: -336
+
+
+
+2.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <limits.h> // For handling potential overflow
+
+// Function to convert a string of a given base to decimal
+long long decodeBase(const char* value, int base) {
+    long long result = 0;
+    for (int i = 0; value[i] != '\0'; i++) {
+        int digit;
+
+        // Determine the digit value based on character
+        if (value[i] >= '0' && value[i] <= '9') {
+            digit = value[i] - '0'; // for digits 0-9
+        } else if (value[i] >= 'A' && value[i] <= 'Z') {
+            digit = value[i] - 'A' + 10; // for letters A-Z
+        } else if (value[i] >= 'a' && value[i] <= 'z') {
+            digit = value[i] - 'a' + 10; // for letters a-z
+        } else {
+            fprintf(stderr, "Invalid character '%c' in number for base %d\n", value[i], base);
+            exit(1);
+        }
+
+        // Check if digit is valid for the base
+        if (digit >= base) {
+            fprintf(stderr, "Invalid digit '%c' in number for base %d\n", value[i], base);
+            exit(1);
+        }
+
+        // Check for overflow
+        if (result > (LLONG_MAX - digit) / base) {
+            fprintf(stderr, "Overflow detected when decoding value.\n");
+            exit(1);
+        }
+        result = result * base + digit;
+    }
+    return result;
+}
+
+// Function to calculate the constant term c
+long long calculateConstantTerm(long long* roots, int m) {
+    long long product = 1;
+    for (int i = 0; i < m; i++) {
+        if (product > LLONG_MAX / roots[i]) {
+            fprintf(stderr, "Overflow detected when calculating product.\n");
+            exit(1);
+        }
+        product *= roots[i];
+    }
+    return (m % 2 == 0) ? product : -product; // Even m: return product, Odd m: return -product
+}
+
+int main() {
+    // Define the JSON data as a string in the code
+    const char json[] = "{"
+        "\"keys\": {\"n\": 10, \"k\": 7}, "
+        "\"1\": {\"base\": \"6\", \"value\": \"13444211440455345511\"}, "
+        "\"2\": {\"base\": \"15\", \"value\": \"aed7015a346d63\"}, "
+        "\"3\": {\"base\": \"15\", \"value\": \"6aeeb69631c227c\"}, "
+        "\"4\": {\"base\": \"16\", \"value\": \"e1b5e05623d881f\"}, "
+        "\"5\": {\"base\": \"8\", \"value\": \"316034514573652620673\"}, "
+        "\"6\": {\"base\": \"3\", \"value\": \"2122212201122002221120200210011020220200\"}, "
+        "\"7\": {\"base\": \"3\", \"value\": \"20120221122211000100210021102001201112121\"}, "
+        "\"8\": {\"base\": \"6\", \"value\": \"20220554335330240002224253\"}, "
+        "\"9\": {\"base\": \"12\", \"value\": \"45153788322a1255483\"}, "
+        "\"10\": {\"base\": \"7\", \"value\": \"1101613130313526312514143\"}"
+    "}";
+
+    int n = 0, k = 0;
+    long long roots[10] = {0}; // Array to store decoded roots (up to 10 in this case)
+    char* token;
+
+    // Extract n and k from the JSON string
+    token = strstr(json, "\"keys\":");
+    if (token) {
+        sscanf(token, "\"keys\": {\"n\": %d, \"k\": %d", &n, &k);
+    }
+
+    // Read and decode roots
+    int decodedRootsCount = 0;  // Counter for the number of roots decoded
+    for (int i = 1; decodedRootsCount < n; i++) {
+        char baseKey[20];
+        snprintf(baseKey, sizeof(baseKey), "\"%d\": {\"base\":", i);
+
+        char* baseStart = strstr(json, baseKey);
+        if (baseStart) {
+            int base;
+            char value[100];
+
+            // Extract base and value for the current root
+            sscanf(baseStart, "\"%d\": {\"base\": \"%d\", \"value\": \"%[^\"]\"}", &i, &base, value);
+
+            // Decode value from the given base
+            long long decodedValue = decodeBase(value, base);
+            roots[decodedRootsCount] = decodedValue;
+            decodedRootsCount++;
+        }
+    }
+
+    // Calculate the constant term c using the first k roots
+    long long constantTerm = calculateConstantTerm(roots, k);
+    printf("The constant term c is: %lld\n", constantTerm);
+
+    return 0;
+}
+
+
+T2:
+Overflow detected when decoding value.
